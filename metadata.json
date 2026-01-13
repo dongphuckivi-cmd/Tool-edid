@@ -1,0 +1,7 @@
+{
+  "name": "Thay Màu AI by Tí Điên",
+  "description": "A professional AI-powered fashion editor that detects clothing items and allows realistic recoloring while preserving textures and lighting.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
