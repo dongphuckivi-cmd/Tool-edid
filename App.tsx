@@ -9,6 +9,7 @@ import Sidebar from './components/Sidebar';
 import ImageEditor from './components/ImageEditor';
 import Header from './components/Header';
 import LoadingOverlay from './components/LoadingOverlay';
+import SettingsModal from './components/SettingsModal';
 
 const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   brightness: 100,
@@ -16,6 +17,18 @@ const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   saturation: 100,
   sharpness: 0
 };
+
+// Fix aistudio type declaration to match the existing global AIStudio type.
+declare global {
+  interface AIStudio {
+    hasSelectedApiKey: () => Promise<boolean>;
+    openSelectKey: () => Promise<void>;
+  }
+
+  interface Window {
+    aistudio: AIStudio;
+  }
+}
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>({
@@ -31,6 +44,7 @@ const App: React.FC = () => {
 
   const [status, setStatus] = useState<ProcessStatus>(ProcessStatus.IDLE);
   const [error, setError] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const addToHistory = (items: FashionItem[]) => {
     const newHistory = state.history.slice(0, state.historyIndex + 1);
@@ -42,9 +56,25 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleManageApiKey = async () => {
+    if (window.aistudio) {
+      await window.aistudio.openSelectKey();
+    }
+  };
+
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Kiểm tra API Key trước khi xử lý nếu cần
+    if (window.aistudio) {
+      const hasKey = await window.aistudio.hasSelectedApiKey();
+      if (!hasKey) {
+        setIsSettingsOpen(true);
+        setError("Vui lòng thiết lập API Key trước khi bắt đầu.");
+        return;
+      }
+    }
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -66,8 +96,13 @@ const App: React.FC = () => {
         setState(prev => ({ ...prev, items: detected }));
         addToHistory(detected);
         setStatus(ProcessStatus.IDLE);
-      } catch (err) {
-        setError("Không thể phân tích hình ảnh. Vui lòng thử lại.");
+      } catch (err: any) {
+        if (err.message?.includes("Requested entity was not found")) {
+          setError("Lỗi xác thực API. Vui lòng kiểm tra lại khóa của bạn.");
+          setIsSettingsOpen(true);
+        } else {
+          setError("Không thể phân tích hình ảnh. Vui lòng thử lại.");
+        }
         setStatus(ProcessStatus.ERROR);
       }
     };
@@ -121,7 +156,12 @@ const App: React.FC = () => {
       setStatus(ProcessStatus.IDLE);
       addToHistory(state.items);
     } catch (err: any) {
-      setError(err.message || "Đổi màu bằng AI thất bại.");
+      if (err.message?.includes("Requested entity was not found")) {
+        setError("Lỗi xác thực API. Vui lòng kiểm tra lại khóa.");
+        setIsSettingsOpen(true);
+      } else {
+        setError(err.message || "Đổi màu bằng AI thất bại.");
+      }
       setStatus(ProcessStatus.IDLE);
     }
   };
@@ -163,6 +203,7 @@ const App: React.FC = () => {
         onUndo={undo} 
         onRedo={redo} 
         onExport={exportImage}
+        onOpenSettings={() => setIsSettingsOpen(true)}
         canUndo={state.historyIndex > 0}
         canRedo={state.historyIndex < state.history.length - 1}
         hasImage={!!state.image}
@@ -190,11 +231,20 @@ const App: React.FC = () => {
               <p className="text-slate-400 leading-relaxed">
                 Tải ảnh lên để tự động nhận diện trang phục và thử nghiệm màu sắc với độ chi tiết chuyên nghiệp từ AI.
               </p>
-              <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-xl font-semibold transition-all shadow-lg shadow-indigo-500/20 active:scale-95 flex items-center gap-3">
-                <Upload size={20} />
-                Chọn hình ảnh
-                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-              </label>
+              <div className="flex flex-col gap-3">
+                <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-xl font-semibold transition-all shadow-lg shadow-indigo-500/20 active:scale-95 flex items-center gap-3">
+                  <Upload size={20} />
+                  Chọn hình ảnh
+                  <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                </label>
+                <button 
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="text-xs text-slate-500 hover:text-indigo-400 flex items-center justify-center gap-1.5 transition-colors py-2"
+                >
+                  <Settings2 size={12} />
+                  Quản lý API Key của bạn
+                </button>
+              </div>
             </div>
           )}
           
@@ -231,6 +281,12 @@ const App: React.FC = () => {
           )}
         </div>
       </main>
+
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+        onManageKey={handleManageApiKey}
+      />
     </div>
   );
 };

@@ -1,18 +1,19 @@
 
 import React, { useState } from 'react';
-import { Upload, RotateCcw, RotateCw, Download, Sparkles, Coffee, QrCode, X } from 'lucide-react';
+import { Upload, RotateCcw, RotateCw, Download, Sparkles, Coffee, QrCode, X, Settings } from 'lucide-react';
 
 interface HeaderProps {
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onUndo: () => void;
   onRedo: () => void;
   onExport: () => void;
+  onOpenSettings: () => void;
   canUndo: boolean;
   canRedo: boolean;
   hasImage: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ onUpload, onUndo, onRedo, onExport, canUndo, canRedo, hasImage }) => {
+const Header: React.FC<HeaderProps> = ({ onUpload, onUndo, onRedo, onExport, onOpenSettings, canUndo, canRedo, hasImage }) => {
   const [showQR, setShowQR] = useState(false);
 
   // Link VietQR: MB Bank - 0919232652 - Compact template
@@ -83,28 +84,36 @@ const Header: React.FC<HeaderProps> = ({ onUpload, onUndo, onRedo, onExport, can
         </div>
       </div>
 
-      {hasImage && (
-        <div className="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-2xl border border-slate-800">
-          <button 
-            onClick={onUndo} 
-            disabled={!canUndo}
-            className="p-3 rounded-xl hover:bg-slate-800 disabled:opacity-30 transition-all text-slate-400 hover:text-white"
-            title="Hoàn tác"
-          >
-            <RotateCcw size={20} />
-          </button>
-          <button 
-            onClick={onRedo} 
-            disabled={!canRedo}
-            className="p-3 rounded-xl hover:bg-slate-800 disabled:opacity-30 transition-all text-slate-400 hover:text-white"
-            title="Làm lại"
-          >
-            <RotateCw size={20} />
-          </button>
-        </div>
-      )}
-
       <div className="flex items-center gap-4">
+        <button 
+          onClick={onOpenSettings}
+          className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-all active:scale-95"
+          title="Cài đặt hệ thống"
+        >
+          <Settings size={20} />
+        </button>
+
+        {hasImage && (
+          <div className="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-2xl border border-slate-800">
+            <button 
+              onClick={onUndo} 
+              disabled={!canUndo}
+              className="p-3 rounded-xl hover:bg-slate-800 disabled:opacity-30 transition-all text-slate-400 hover:text-white"
+              title="Hoàn tác"
+            >
+              <RotateCcw size={20} />
+            </button>
+            <button 
+              onClick={onRedo} 
+              disabled={!canRedo}
+              className="p-3 rounded-xl hover:bg-slate-800 disabled:opacity-30 transition-all text-slate-400 hover:text-white"
+              title="Làm lại"
+            >
+              <RotateCw size={20} />
+            </button>
+          </div>
+        )}
+
         {hasImage && (
           <label className="cursor-pointer text-slate-400 hover:text-white flex items-center gap-2 px-4 py-2 hover:bg-slate-800 rounded-xl transition-all">
             <Upload size={18} />
